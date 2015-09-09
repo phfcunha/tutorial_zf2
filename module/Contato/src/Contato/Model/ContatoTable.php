@@ -4,10 +4,17 @@
 namespace Contato\Model;
  
 // import ZendDb
-use //Zend\Db\Adapter\Adapter,
-    //Zend\Db\ResultSet\ResultSet,
-    Contato\Model\Contato,
-    Zend\Db\TableGateway\TableGateway;
+use Zend\Db\TableGateway\TableGateway;
+
+// import ModelContato        
+//use Contato\Model\Contato;
+    
+// import for fetchPaginator
+use Zend\Db\Sql\Select,
+    Zend\Db\ResultSet\HydratingResultSet,
+    Zend\Stdlib\Hydrator\Reflection,
+    Zend\Paginator\Adapter\DbSelect,
+    Zend\Paginator\Paginator;
  
 class ContatoTable
 {
@@ -106,5 +113,55 @@ class ContatoTable
     public function delete($id)
     {
         $this->tableGateway->delete(array('id' => (int) $id));
+    }
+    
+    /**
+    * Localizar itens por paginação
+    * 
+    * @param type $pagina
+    * @param type $itensPagina
+    * @param type $ordem
+    * @param type $like
+    * @param type $itensPaginacao
+    * @return type Paginator
+    */
+    public function fetchPaginator($pagina = 1, $itensPagina = 10, $ordem = 'nome ASC', $like = null, $itensPaginacao = 5) 
+    {
+        // preparar um select para tabela contato com uma ordem
+        $select = (new Select('contatos'))->order($ordem);
+
+        if (isset($like)) {
+            $select
+                    ->where
+                    ->like('id', "%{$like}%")
+                    ->or
+                    ->like('nome', "%{$like}%")
+                    ->or
+                    ->like('telefone_principal', "%{$like}%")
+                    ->or
+                    ->like('data_criacao', "%{$like}%")
+            ;
+        }
+
+        // criar um objeto com a estrutura desejada para armazenar valores
+        $resultSet = new HydratingResultSet(new Reflection(), new Contato());
+
+        // criar um objeto adapter paginator
+        $paginatorAdapter = new DbSelect(
+            // nosso objeto select
+            $select,
+            // nosso adapter da tabela
+            $this->tableGateway->getAdapter(),
+            // nosso objeto base para ser populado
+            $resultSet
+        );
+
+        // resultado da paginação
+        return (new Paginator($paginatorAdapter))
+                // pagina a ser buscada
+                ->setCurrentPageNumber((int) $pagina)
+                // quantidade de itens na página
+                ->setItemCountPerPage((int) $itensPagina)
+                ->setPageRange((int) $itensPaginacao);
     }
 }
