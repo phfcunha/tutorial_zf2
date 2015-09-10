@@ -74,4 +74,18 @@ class Module
            )
        );
    }
+   
+   /**
+    * Register Controller Plugin
+    */
+    public function getControllerPluginConfig()
+    {
+        return array(
+            'factories' => array(
+                'cache' => function($sm) {
+                    return new Controller\Plugin\Cache($sm->getServiceLocator()->get('Cache\FileSystem'));
+                },
+            ),
+        );
+    }
 }
